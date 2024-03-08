@@ -103,8 +103,10 @@ function getInputValue(input) {
 /* ====================
 Event Listeners
 ==================== */
+let isInitialized = false;
 $("select").on("change", function () {
     saveInputValue($(this));
+    if (!isInitialized) { return; }
     calculate();
 });
 
@@ -124,7 +126,7 @@ $("input").on("keydown", function (event) {
 });
 
 /* On blur gets the internal value and format it to display as the input value */
-$("input").on("blur", function () {
+$("input").on("blur", function (event) {
     switch ($(this).attr("format")) {
         case "percentage" || "currency" || "number":
             /* Get the pasted text */
@@ -153,29 +155,98 @@ $("input").on("blur", function () {
             $(this).val(formatNumber($(this).val()));
             break;
     }
+    if (!isInitialized) { return; }
     calculate();
 });
 
 /* ====================
+Chart.js
+==================== */
+import Chart from 'chart.js/auto';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+
+let chartData = new Array(4);
+let chartDataLabels = new Array(4);
+let chart;
+
+Chart.register(ChartDataLabels);
+
+function createChart() {
+    chart = new Chart("chart", { 
+        data: {
+            datasets: [{
+                type: "bar",
+                label: "Annual Estimate",
+                data: chartData,
+                borderColor: '#c6efed',
+                backgroundColor: '#c6efed',
+                yAxisID: "y",
+            }],
+            labels: ["Medical & Rx", "Job Turnover", "Productivity", "Annual Savings"],
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    type: "linear",
+                    display: true,
+                    position: "left"
+                }
+            },
+            plugins: {
+                tooltip: {
+                    enabled: false
+                },
+                datalabels: {
+                    align: 'center',
+                    anchor: 'center',
+                    color: '#000',
+                    formatter: function (value, context) {
+                        return formatCurrency(chartDataLabels[context.dataIndex]);
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartData() {
+    chartData[0] = [0, totalMedicalRxSavings_value];
+    chartData[1] = [totalMedicalRxSavings_value, totalMedicalRxSavings_value + totalTurnoverSavings_value];
+    chartData[2] = [chartData[1][1], chartData[1][1] + totalProductivitySavings_value];
+    chartData[3] = annualSavings_value;
+
+    chartDataLabels[0] = totalMedicalRxSavings_value;
+    chartDataLabels[1] = totalTurnoverSavings_value;
+    chartDataLabels[2] = totalProductivitySavings_value;
+    chartDataLabels[3] = annualSavings_value;
+
+    chart.update();
+}
+
+/* ====================
 Star Calculation
 ==================== */
-// prevent the form to be submitted
-$("#roi-calculator").on("submit", function (event) {
-    return false;
-});
-
-// First check for all input that has default values and set those as values
-$("input").each(function () {
-    if ($(this).attr("default-value") != undefined) {
-        $(this).val($(this).attr("default-value"));
-    }
-    // Now do a blur to format the value
-    $(this).blur();
-});
-
-$('select').each(function () {
-    $(this).trigger('change');
-});
+function init() {
+    // prevent the form to be submitted
+    $("#roi-calculator").on("submit", function (event) {
+        return false;
+    });
+    // First check for all input that has default values and set those as values
+    $("input").each(function () {
+        if ($(this).attr("default-value") != undefined) {
+            $(this).val($(this).attr("default-value"));
+        }
+        // Now do a blur to format the value
+        $(this).blur();
+    });
+    // Save the values for select fields
+    $('select').each(function () {
+        $(this).trigger('change');
+    });
+    calculate();
+    isInitialized = true;
+}
 
 function calculateBasic() {
     sessionFactor_value = industryMultiplier_value + dependentsMultiplier_value + sessionCapMultiplier_value;
@@ -223,4 +294,10 @@ function calculate() {
     calculateProductivity();
     calculateFinalResults();
     displayResults();
+    if (!isInitialized) return;
+    updateChartData();
 }
+
+init();
+createChart();
+updateChartData();

@@ -1,0 +1,19 @@
+{
+  "name": "tava-roi-calculator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "calculator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild ./calculator.js --bundle --minify --sourcemap --watch --outfile=dist/calculator.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chart.js": "^4.4.2",
+    "chartjs-plugin-datalabels": "^2.2.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.1"
+  }
+}
